@@ -1,4 +1,4 @@
-name: Antonio Persistent Build
+name: Antonio Master Build
 
 on:
   push:
@@ -18,24 +18,16 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
-      # 1. Try to restore the keystore from the GitHub Cache
-      - name: Restore Keystore Cache
-        id: cache-keystore
-        uses: actions/cache@v4
-        with:
-          path: app/antonio-release.jks
-          key: ${{ runner.os }}-antonio-keystore-v1
-
-      # 2. Generate key ONLY if cache is empty. Note: Single line prevents "Illegal Option" errors.
-      - name: Generate Fresh Keystore (If Cache Miss)
-        if: steps.cache-keystore.outputs.cache-hit != 'true'
+      # 1. Decode your actual master key that you uploaded via mobile terminal
+      - name: Decode Master Keystore
         run: |
-          keytool -genkeypair -v -keystore app/antonio-release.jks -alias "${{ secrets.KEY_ALIAS }}" -keyalg RSA -keysize 2048 -validity 10000 -storepass "${{ secrets.KEYSTORE_PASSWORD }}" -keypass "${{ secrets.KEY_PASSWORD }}" -dname "CN=Antonio, OU=Dev, O=MoweApp, L=City, S=State, C=US"
+          mkdir -p app
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -di > app/antonio-release.jks
 
       - name: Grant execute permission
         run: chmod +x gradlew
 
-      # 3. Build the App with the auto-incrementing version
+      # 2. Build the App with the auto-incrementing version
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon -PversionCode=${{ github.run_number }} -PversionName="1.0.${{ github.run_number }}"
         env:
@@ -44,19 +36,9 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
           KEYSTORE_PATH: "antonio-release.jks"
 
-      # 4. Upload the finished App
+      # 3. Upload the finished APK
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Antonio-Build-${{ github.run_number }}
+          name: Antonio-App-Build-${{ github.run_number }}
           path: app/build/outputs/apk/release/app-release.apk
-
-      # 5. Backup the Key file so you can save it locally
-      - name: Backup Keystore File
-        uses: actions/upload-artifact@v4
-        with:
-          name: Antonio-Key-Backup
-          path: app/antonio-release.jks
-
-          
-          
