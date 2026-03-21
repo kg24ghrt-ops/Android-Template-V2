@@ -1,9 +1,9 @@
-name: Antonio Release Build
+name: Antonio Persistent Build
 
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch: # Allows you to trigger a build manually
+  workflow_dispatch: 
 
 jobs:
   build:
@@ -16,14 +16,30 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          # This is the primary cache
           cache: gradle
+
+      # ADDED: Hardcore Caching for faster builds
+      - name: Cache Gradle Dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission
+        run: chmod +x gradlew
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/antonio-release.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -di > app/antonio-release.jks
 
-      - name: Build Release APK
-        run: ./gradlew assembleRelease
+      - name: Build with Auto-Increment
+        # The --daemon flag keeps things moving, and the cache will handle the rest
+        run: ./gradlew assembleRelease --no-daemon -PversionCode=${{ github.run_number }} -PversionName="1.0.${{ github.run_number }}"
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -33,5 +49,5 @@ jobs:
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
-          name: Antonio-Release-v1
+          name: Antonio-Build-${{ github.run_number }}
           path: app/build/outputs/apk/release/app-release.apk
