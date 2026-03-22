@@ -6,19 +6,14 @@ pluginManagement {
     }
 }
 
-// Remove these lines completely
-// plugins {
-//     id("com.highcapable.sweetdependency") version "1.0.4"
-//     id("com.highcapable.sweetproperty") version "1.0.8"
-// }
-
-// sweetProperty {
-//     rootProject { 
-//         all { 
-//             isEnable = false 
-//         } 
-//     }
-// }
+// ADD THIS BLOCK BELOW
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
 
 rootProject.name = "movie"
 include(":app")
