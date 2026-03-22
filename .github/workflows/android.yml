@@ -2,7 +2,7 @@ name: Antonio Build
 
 on:
   push:
-    branches: ["main"]
+    branches: [ "main" ]
   workflow_dispatch:
 
 env:
@@ -11,11 +11,12 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
 
     steps:
-      # 1️⃣ Checkout code
+      # 1️⃣ Checkout project
       - uses: actions/checkout@v4
 
       # 2️⃣ Set up JDK 21
@@ -25,47 +26,28 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 3️⃣ Install Gradle CLI for wrapper repair
-      - name: Install Gradle CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gradle
-
-      # 4️⃣ Validate or Repair Gradle Wrapper
-      - name: Validate or Repair Gradle Wrapper
-        run: |
-          echo "Checking Gradle wrapper..."
-          NEED_REPAIR=false
-          if [ ! -f "gradlew" ]; then
-            NEED_REPAIR=true
-          fi
-          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
-            NEED_REPAIR=true
-          fi
-          if [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
-            NEED_REPAIR=true
-          fi
-
-          if [ "$NEED_REPAIR" = true ]; then
-            echo "Repairing Gradle wrapper..."
-            rm -rf gradlew gradlew.bat gradle/wrapper
-            gradle wrapper --gradle-version 8.10.2
-          fi
-
-          chmod +x gradlew
-
-      # 5️⃣ Cache Gradle dependencies
+      # 3️⃣ Cache Gradle dependencies for speed
       - name: Cache Gradle
         uses: actions/cache@v3
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper/
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            gradle-${{ runner.os }}-
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
 
-      # 6️⃣ Upload Gradle Wrapper files for mobile
+      # 4️⃣ Validate or Repair Gradle Wrapper
+      - name: Validate Gradle Wrapper
+        run: |
+          echo "Checking Gradle wrapper..."
+          if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
+            echo "Gradle wrapper missing or incomplete. Repairing..."
+            rm -rf gradlew gradlew.bat gradle/wrapper
+            gradle wrapper --gradle-version 8.10.2
+          fi
+          chmod +x gradlew
+
+      # 5️⃣ Upload Gradle Wrapper (for mobile editing use)
       - name: Upload Gradle Wrapper Files
         uses: actions/upload-artifact@v4
         with:
@@ -76,28 +58,30 @@ jobs:
             gradle/wrapper/gradle-wrapper.jar
             gradle/wrapper/gradle-wrapper.properties
 
-      # 7️⃣ Decode Master Keystore
+      # 6️⃣ Decode release keystore
       - name: Decode Master Keystore
         run: |
           mkdir -p app
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/antonio-release.jks
 
-      # 8️⃣ Autowire SweetDependency Plugins (requires explicit plugin versions)
-      - name: Autowire SweetDependency Plugins
+      # 7️⃣ Autowire plugins with SweetDependency (fixed)
+      - name: Autowire Plugins
         run: ./gradlew autowirePlugins
+        env:
+          SWEET_AUTOWIRE_ON_SYNC_MODE: UPDATE_ALL_PLUGINS
 
-      # 9️⃣ Build Release APK
+      # 8️⃣ Assemble Release APK
       - name: Build Release APK
-        run: ./gradlew assembleRelease --no-daemon --build-cache
+        run: ./gradlew assembleRelease --no-daemon --build-cache --parallel
         env:
           RELEASE_STORE_FILE: app/antonio-release.jks
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
-      # 🔟 Upload APK artifacts
+      # 9️⃣ Upload Release APK artifact
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: Antonio-App-Build-${{ github.run_number }}
-          path: app/build/outputs/**/*.apk.
+          path: app/build/outputs/**/*.apk
