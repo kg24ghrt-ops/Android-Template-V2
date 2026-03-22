@@ -8,11 +8,16 @@ import androidx.compose.runtime.*
  */
 @Stable
 class WebViewState {
+    // Tracks the 0.0 to 1.0 progress for the LinearProgressIndicator
     var progress by mutableFloatStateOf(0f)
+    
+    // Logic: If progress is less than 1.0, we are still loading
     var isLoading by mutableStateOf(false)
+    
+    // Navigation states for the Back/Forward buttons in TopAppBar
     var canGoBack by mutableStateOf(false)
     var canGoForward by mutableStateOf(false)
     
-    // Direct reference for UI actions like reload/goBack
-    var webView: WebView? = null
+    // Direct reference used by IconButton(onClick = { state.webView?.goBack() })
+    var webView: WebView? by mutableStateOf(null)
 }

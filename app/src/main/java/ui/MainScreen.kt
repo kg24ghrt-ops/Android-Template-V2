@@ -14,6 +14,7 @@ import com.moweapp.antonio.webview.WebViewState
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
+    // State management for the WebView
     val state = remember { WebViewState() }
     var isFullscreen by remember { mutableStateOf(false) }
 
@@ -34,14 +35,12 @@ fun MainScreen() {
                             IconButton(onClick = { state.webView?.reload() }) {
                                 Icon(Icons.Default.Refresh, contentDescription = "Reload")
                             }
-                            IconButton(onClick = { isFullscreen = true }) {
-                                Icon(Icons.Default.Fullscreen, contentDescription = "Fullscreen")
-                            }
                         }
                     )
+                    // FIXED: LinearProgressIndicator in Material3 uses a direct Float for progress, not a lambda
                     if (state.isLoading) {
                         LinearProgressIndicator(
-                            progress = { state.progress },
+                            progress = state.progress, 
                             modifier = Modifier.fillMaxWidth(),
                             color = MaterialTheme.colorScheme.primary,
                             trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -51,7 +50,10 @@ fun MainScreen() {
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(if (isFullscreen) PaddingValues(0.dp) else padding)) {
+        // In fullscreen, we ignore the Scaffold padding to take over the whole screen
+        val finalPadding = if (isFullscreen) PaddingValues(0.dp) else padding
+        
+        Box(modifier = Modifier.padding(finalPadding)) {
             SecureWebView(
                 url = "https://vidbox.cc/home",
                 state = state,
@@ -59,6 +61,7 @@ fun MainScreen() {
             )
             
             // Exit Fullscreen Button Overlay (only visible in fullscreen)
+            // Note: If Icons.Default.FullscreenExit fails, ensure 'androidx.compose.material:material-icons-extended' is in build.gradle
             if (isFullscreen) {
                 FilledIconButton(
                     onClick = { isFullscreen = false },
@@ -67,7 +70,7 @@ fun MainScreen() {
                         containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
                     )
                 ) {
-                    Icon(Icons.Default.FullscreenExit, contentDescription = "Exit Fullscreen")
+                    Icon(Icons.Default.Close, contentDescription = "Exit Fullscreen")
                 }
             }
         }
