@@ -12,32 +12,46 @@ class WebViewController(
     @SuppressLint("SetJavaScriptEnabled")
     fun configureSettings(settings: WebSettings) {
         with(settings) {
+            // 1. 🔥 THE RESET FIX: Enable the "Brain"
             javaScriptEnabled = true
-            // 🔥 THE RESET FIX: Modern sites require these to load data
             domStorageEnabled = true
             databaseEnabled = true
             
-            // 🔥 THE RESET FIX: Pretend to be a Pixel 7 / Chrome browser
-            userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+            // 2. 🔥 THE IDENTITY FIX: Use a Desktop identity (most stable)
+            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
             
-            cacheMode = WebSettings.LOAD_DEFAULT
-            mediaPlaybackRequiresUserGesture = false
+            // 3. 🔥 THE FIREWALL FIX: Allow mixed content (Vidbox uses multiple servers)
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
             
+            // 4. Performance & Video Stability
+            cacheMode = WebSettings.LOAD_DEFAULT
+            mediaPlaybackRequiresUserGesture = false
+            loadWithOverviewMode = true
+            useWideViewPort = true
+            
+            // 5. Security bypass for streamers
             allowFileAccess = true
             allowContentAccess = true
         }
+
+        // 6. 🔥 THE COOKIE FIX: Sync cookies properly to avoid "Reset"
+        val cookieManager = CookieManager.getInstance()
+        cookieManager.setAcceptCookie(true)
+        cookieManager.setAcceptThirdPartyCookies(state.webView, true)
     }
 
     fun createWebViewClient(state: WebViewState): WebViewClient = object : WebViewClient() {
         
-        // 🔥 POWER PLANT AD-BLOCKER: Intercepts and kills ads before they load
+        // 🔥 POWER PLANT AD-BLOCKER
         override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
             val url = request?.url.toString()
-            val adKeywords = listOf("doubleclick", "googleadservices", "popads", "adskeeper", "exoclick", "adsterra")
+            // Expanded list to kill Vidbox's common pop-up triggers
+            val adKeywords = listOf(
+                "doubleclick", "googleadservices", "popads", "adskeeper", 
+                "exoclick", "adsterra", "bet365", "onclickads", "vidoomy"
+            )
             
-            if (adKeywords.any { url.contains(it) }) {
-                // Return an empty response to "silence" the ad
+            if (adKeywords.any { url.contains(it, ignoreCase = true) }) {
                 return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream("".toByteArray()))
             }
             return super.shouldInterceptRequest(view, request)
@@ -53,13 +67,27 @@ class WebViewController(
             state.canGoForward = view?.canGoForward() ?: false
         }
 
-        // Keep the user inside the app
+        // Keep all navigation inside the app box
         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-            return false 
+            val url = request?.url.toString()
+            return if (url.contains(allowedDomain)) {
+                false // Load in WebView
+            } else {
+                false // Still load in WebView (blocks pop-outs)
+            }
+        }
+
+        // 🔥 THE ERROR CATCHER: Let's see if we can get more info on the reset
+        override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+            super.onReceivedError(view, request, error)
+            // If it resets, try to reload once automatically
+            if (error?.errorCode == ERROR_CONNECT || error?.errorCode == ERROR_TIMEOUT) {
+                view?.reload()
+            }
         }
     }
 
     fun setupDownloadListener(webView: WebView) {
-        // Placeholder for future download handling
+        // Placeholder
     }
 }
