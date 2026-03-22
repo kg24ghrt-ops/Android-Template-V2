@@ -24,29 +24,44 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # Install Gradle CLI (IMPORTANT for wrapper regeneration)
-      - name: Install Gradle CLI
+      - name: Install Gradle CLI (for repair only)
         run: |
           sudo apt-get update
           sudo apt-get install -y gradle
 
-      # 🔥 FORCE REGENERATE WRAPPER + UPDATE PROPERTIES
-      - name: Regenerate Gradle Wrapper (Full Reset)
+      # ✅ SMART WRAPPER CHECK (your rule applied)
+      - name: Validate or Repair Gradle Wrapper
         run: |
-          echo "Forcing fresh Gradle wrapper generation..."
+          echo "Checking Gradle wrapper..."
 
-          # Remove old wrapper completely
-          rm -rf gradlew gradlew.bat gradle/wrapper
+          NEED_REPAIR=false
 
-          # Generate new wrapper with specific version
-          gradle wrapper --gradle-version 8.10.2
+          if [ ! -f "gradlew" ]; then
+            echo "Missing gradlew"
+            NEED_REPAIR=true
+          fi
 
-          # Ensure executable
+          if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "Missing wrapper jar"
+            NEED_REPAIR=true
+          fi
+
+          if [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
+            echo "Missing wrapper properties"
+            NEED_REPAIR=true
+          fi
+
+          if [ "$NEED_REPAIR" = true ]; then
+            echo "Repairing wrapper..."
+            rm -rf gradlew gradlew.bat gradle/wrapper
+            gradle wrapper --gradle-version 8.10.2
+          else
+            echo "Wrapper is valid, skipping repair"
+          fi
+
           chmod +x gradlew
 
-          echo "Wrapper regenerated successfully"
-
-      # 📦 Upload wrapper files so you can download on mobile
+      # 📦 Upload wrapper files (for mobile use)
       - name: Upload Gradle Wrapper Files
         uses: actions/upload-artifact@v4
         with:
