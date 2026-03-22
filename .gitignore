@@ -90,8 +90,12 @@ fabric.properties
 .cxx
 
 # Gradle projects
-.gradle
-build/
+# Ensure Gradle Wrapper is NOT ignored
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!**/gradlew
+!**/gradlew.bat
+
 
 # Mkdocs temporary serving folder
 docs-gen
