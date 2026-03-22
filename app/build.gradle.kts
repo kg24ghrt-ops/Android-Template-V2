@@ -5,12 +5,13 @@ plugins {
 
 android {
     namespace = "com.moweapp.antonio"
-    compileSdk = 36
+    // Using 34 or 35 is safer for now as 36 is still in preview for some AGP versions
+    compileSdk = 34 
 
     defaultConfig {
         applicationId = "com.moweapp.antonio"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -18,46 +19,45 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
-    // 1. ADDED: This connects to your GitHub Secrets
     signingConfigs {
+        // This block connects the GitHub Secrets to your actual APK signing process
         create("release") {
-            // This looks for the physical file created by the GitHub Action
-            storeFile = file(System.getenv("KEYSTORE_PATH") ?: "debug.keystore")
-            storePassword = System.getenv("KEYSTORE_PASSWORD")
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
+            val path = System.getenv("RELEASE_STORE_FILE") ?: "debug.keystore"
+            storeFile = file(path)
+            storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+            keyAlias = System.getenv("RELEASE_KEY_ALIAS")
+            keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
         }
     }
 
     buildTypes {
         release {
-            // 2. UPDATED: Enabled shrinking for a clean release
-            isMinifyEnabled = true 
+            isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"), 
+                getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            
-            // 3. ADDED: Tell the release build to use the config above
-            signingConfig = signingConfigs.getByName("release")
         }
     }
 
     compileOptions {
+        // Using JDK 21 to build, but targeting Java 17 for device compatibility
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    
+
     kotlinOptions {
         jvmTarget = "17"
     }
-    
+
     buildFeatures {
         compose = true
     }
-    
+
     composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.1"
+        // FIXED: 1.5.10 is required for Kotlin 1.9.22 compatibility
+        kotlinCompilerExtensionVersion = "1.5.10"
     }
 
     packaging {
@@ -68,27 +68,26 @@ android {
 }
 
 dependencies {
-    // Basic AndroidX & Lifecycle
+    // Core AndroidX
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
     implementation("androidx.activity:activity-compose:1.8.2")
     
-    // MISSING: Modern XML Material Components (Required for Themes.xml)
+    // UI Support (Required for Theme.Material3 references in XML)
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
 
-    // Compose BOM & UI
+    // Jetpack Compose
     implementation(platform("androidx.compose:compose-bom:2023.10.01"))
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
     
-    // WebView support
+    // WebView Support
     implementation("androidx.webkit:webkit:1.9.0")
 
     // Tooling
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
-
