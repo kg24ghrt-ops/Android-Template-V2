@@ -12,17 +12,14 @@ jobs:
       contents: read
 
     steps:
-      # 1️⃣ Checkout project
       - uses: actions/checkout@v4
 
-      # 2️⃣ Set up JDK 21
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      # 3️⃣ Cache Gradle for faster builds
       - name: Cache Gradle
         uses: actions/cache@v3
         with:
@@ -32,35 +29,15 @@ jobs:
           key: gradle-${{ runner.os }}-${{ hashFiles('**/gradle-wrapper.properties') }}
           restore-keys: gradle-${{ runner.os }}-
 
-      # 4️⃣ Validate or repair Gradle Wrapper
-      - name: Validate Gradle Wrapper
-        run: |
-          echo "Checking Gradle wrapper..."
-          if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
-            echo "Gradle wrapper missing or incomplete. Repairing..."
-            rm -rf gradlew gradlew.bat gradle/wrapper
-            gradle wrapper --gradle-version 8.10.2
-          fi
-          chmod +x gradlew
-
-      # 5️⃣ Decode release keystore (Into the app folder)
-      - name: Decode Master Keystore
-        run: |
-          mkdir -p app
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/antonio-release.jks
-
-      # 6️⃣ Build Release APK
       - name: Build Release APK
-        run: ./gradlew assembleRelease --no-daemon --build-cache --parallel
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
         env:
-          # FIXED: We removed 'app/' prefix here because Gradle runs 
-          # from the 'app' module context and already looks inside that folder.
+          # We tell Gradle exactly which file to use from the repo
           RELEASE_STORE_FILE: antonio-release.jks
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
-      # 7️⃣ Upload Release APK artifact
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:

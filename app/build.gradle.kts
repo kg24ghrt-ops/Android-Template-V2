@@ -19,16 +19,30 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
-    signingConfigs {
-        // This block connects the GitHub Secrets to your actual APK signing process
+        signingConfigs {
         create("release") {
-            val path = System.getenv("RELEASE_STORE_FILE") ?: "debug.keystore"
+            // This grabs the path from GitHub or defaults to local app folder
+            val path = System.getenv("RELEASE_STORE_FILE") ?: "antonio-release.jks"
             storeFile = file(path)
+            
             storePassword = System.getenv("RELEASE_STORE_PASSWORD")
+            // This must match 'antonio-key' from your keytool command
             keyAlias = System.getenv("RELEASE_KEY_ALIAS")
             keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
         }
     }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            signingConfig = signingConfigs.getByName("release")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
+
 
     buildTypes {
         release {
