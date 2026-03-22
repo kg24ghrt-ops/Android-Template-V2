@@ -31,14 +31,21 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
+      # 1. Create the file from your Base64 secret
+      - name: Decode Master Keystore
+        run: |
+          mkdir -p app
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/antonio-release.jks
+
+      # 2. Run the Build
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon
         env:
-          # FIXED: Changed from 'app/antonio-release.jks' to just the filename.
-          # Gradle looks inside the 'app' folder automatically.
+          # This must match the filename created in the step above
           RELEASE_STORE_FILE: "antonio-release.jks"
+          # These must match the secrets you set via 'gh'
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_ALIAS: "antonio-key"
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Upload Release APK
