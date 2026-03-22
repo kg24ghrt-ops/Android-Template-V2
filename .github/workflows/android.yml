@@ -43,35 +43,26 @@ jobs:
           fi
           chmod +x gradlew
 
-      # 5️⃣ Optional: upload Gradle Wrapper files (for mobile editing)
-      - name: Upload Gradle Wrapper Files
-        uses: actions/upload-artifact@v4
-        with:
-          name: gradle-wrapper-files-${{ github.run_number }}
-          path: |
-            gradlew
-            gradlew.bat
-            gradle/wrapper/gradle-wrapper.jar
-            gradle/wrapper/gradle-wrapper.properties
-
-      # 6️⃣ Decode release keystore
+      # 5️⃣ Decode release keystore (Into the app folder)
       - name: Decode Master Keystore
         run: |
           mkdir -p app
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/antonio-release.jks
 
-      # 7️⃣ Assemble Release APK (no TOML/Live autowire)
+      # 6️⃣ Build Release APK
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon --build-cache --parallel
         env:
-          RELEASE_STORE_FILE: app/antonio-release.jks
+          # FIXED: We removed 'app/' prefix here because Gradle runs 
+          # from the 'app' module context and already looks inside that folder.
+          RELEASE_STORE_FILE: antonio-release.jks
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
-      # 8️⃣ Upload Release APK artifact
+      # 7️⃣ Upload Release APK artifact
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: Antonio-App-Build-${{ github.run_number }}
-          path: app/build/outputs/**/*.apk
+          path: app/build/outputs/apk/release/*.apk
