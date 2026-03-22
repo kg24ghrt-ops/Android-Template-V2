@@ -12,49 +12,53 @@ class WebViewController(
     @SuppressLint("SetJavaScriptEnabled")
     fun configureSettings(settings: WebSettings) {
         with(settings) {
-            // 1. 🔥 THE RESET FIX: Enable the "Brain"
             javaScriptEnabled = true
             domStorageEnabled = true
             databaseEnabled = true
             
-            // 2. 🔥 THE IDENTITY FIX: Use a Desktop identity (most stable)
-            userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+            // 🛡️ SECURITY FIX: Disable these to prevent "File Uri" crashes on modern Android
+            allowFileAccess = false
+            allowContentAccess = false
             
-            // 3. 🔥 THE FIREWALL FIX: Allow mixed content (Vidbox uses multiple servers)
+            // 🛡️ STABILITY FIX: Use a stable Mobile User Agent instead of Desktop
+            // Some mobile GPUs crash trying to render the Desktop version of complex players
+            userAgentString = "Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/116.0.0.0 Mobile Safari/537.36"
+            
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            
-            // 4. Performance & Video Stability
             cacheMode = WebSettings.LOAD_DEFAULT
+            
+            // Critical for streaming sites
             mediaPlaybackRequiresUserGesture = false
             loadWithOverviewMode = true
             useWideViewPort = true
-            
-            // 5. Security bypass for streamers
-            allowFileAccess = true
-            allowContentAccess = true
         }
-
-        // 6. 🔥 THE COOKIE FIX: Sync cookies properly to avoid "Reset"
-        val cookieManager = CookieManager.getInstance()
-        cookieManager.setAcceptCookie(true)
-        cookieManager.setAcceptThirdPartyCookies(state.webView, true)
+        
+        // Ensure cookies are ready before the first load
+        CookieManager.getInstance().setAcceptCookie(true)
+        CookieManager.getInstance().setAcceptThirdPartyCookies(state.webView, true)
     }
 
     fun createWebViewClient(state: WebViewState): WebViewClient = object : WebViewClient() {
         
-        // 🔥 POWER PLANT AD-BLOCKER
+        // 🛑 CRASH FIX: Check for Null requests before processing
         override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
-            val url = request?.url.toString()
-            // Expanded list to kill Vidbox's common pop-up triggers
-            val adKeywords = listOf(
-                "doubleclick", "googleadservices", "popads", "adskeeper", 
-                "exoclick", "adsterra", "bet365", "onclickads", "vidoomy"
-            )
+            val url = request?.url?.toString() ?: return null
             
+            // AD-BLOCKER: Focus on the high-frequency "reset" triggers
+            val adKeywords = listOf("doubleclick", "googleadservices", "popads", "adskeeper", "exoclick")
             if (adKeywords.any { url.contains(it, ignoreCase = true) }) {
                 return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream("".toByteArray()))
             }
             return super.shouldInterceptRequest(view, request)
+        }
+
+        // 🛑 LOOP FIX: Remove the "auto-reload" on error. 
+        // If the site is down, auto-reload causes an infinite loop that kills the app process.
+        override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
+            if (request?.isForMainFrame == true) {
+                state.isLoading = false
+                // Instead of reloading, we just stop. This prevents the "Automatic Closing" crash.
+            }
         }
 
         override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -63,31 +67,17 @@ class WebViewController(
 
         override fun onPageFinished(view: WebView?, url: String?) {
             state.isLoading = false
-            state.canGoBack = view?.canGoBack() ?: false
-            state.canGoForward = view?.canGoForward() ?: false
+            CookieManager.getInstance().flush()
         }
 
-        // Keep all navigation inside the app box
+        // Prevent external app "Leaps" (e.g., opening Play Store)
         override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-            val url = request?.url.toString()
+            val url = request?.url?.toString() ?: return false
             return if (url.contains(allowedDomain)) {
-                false // Load in WebView
+                false // Stay in WebView
             } else {
-                false // Still load in WebView (blocks pop-outs)
+                true // Block the redirect to stop the app from closing/switching
             }
         }
-
-        // 🔥 THE ERROR CATCHER: Let's see if we can get more info on the reset
-        override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
-            super.onReceivedError(view, request, error)
-            // If it resets, try to reload once automatically
-            if (error?.errorCode == ERROR_CONNECT || error?.errorCode == ERROR_TIMEOUT) {
-                view?.reload()
-            }
-        }
-    }
-
-    fun setupDownloadListener(webView: WebView) {
-        // Placeholder
     }
 }
