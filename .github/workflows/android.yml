@@ -11,7 +11,6 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     permissions:
       contents: read
 
@@ -26,7 +25,7 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      # 3️⃣ Install Gradle CLI for repair (temporary)
+      # 3️⃣ Install Gradle CLI for wrapper repair
       - name: Install Gradle CLI
         run: |
           sudo apt-get update
@@ -38,15 +37,12 @@ jobs:
           echo "Checking Gradle wrapper..."
           NEED_REPAIR=false
           if [ ! -f "gradlew" ]; then
-            echo "Missing gradlew"
             NEED_REPAIR=true
           fi
           if [ ! -f "gradle/wrapper/gradle-wrapper.jar" ]; then
-            echo "Missing wrapper jar"
             NEED_REPAIR=true
           fi
           if [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
-            echo "Missing wrapper properties"
             NEED_REPAIR=true
           fi
 
@@ -54,13 +50,22 @@ jobs:
             echo "Repairing Gradle wrapper..."
             rm -rf gradlew gradlew.bat gradle/wrapper
             gradle wrapper --gradle-version 8.10.2
-          else
-            echo "Wrapper is valid, skipping repair"
           fi
 
           chmod +x gradlew
 
-      # 5️⃣ Upload Gradle Wrapper files for mobile usage
+      # 5️⃣ Cache Gradle dependencies
+      - name: Cache Gradle
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper/
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      # 6️⃣ Upload Gradle Wrapper files for mobile
       - name: Upload Gradle Wrapper Files
         uses: actions/upload-artifact@v4
         with:
@@ -71,17 +76,17 @@ jobs:
             gradle/wrapper/gradle-wrapper.jar
             gradle/wrapper/gradle-wrapper.properties
 
-      # 6️⃣ Decode Master Keystore
+      # 7️⃣ Decode Master Keystore
       - name: Decode Master Keystore
         run: |
           mkdir -p app
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/antonio-release.jks
 
-      # 7️⃣ Autowire SweetDependency plugins (fixes build issues)
+      # 8️⃣ Autowire SweetDependency Plugins (requires explicit plugin versions)
       - name: Autowire SweetDependency Plugins
         run: ./gradlew autowirePlugins
 
-      # 8️⃣ Build Release APK
+      # 9️⃣ Build Release APK
       - name: Build Release APK
         run: ./gradlew assembleRelease --no-daemon --build-cache
         env:
@@ -90,7 +95,7 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
-      # 9️⃣ Upload APK artifacts
+      # 🔟 Upload APK artifacts
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
