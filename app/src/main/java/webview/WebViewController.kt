@@ -15,15 +15,17 @@ class WebViewController(
             javaScriptEnabled = true
             domStorageEnabled = true
             cacheMode = WebSettings.LOAD_DEFAULT
-            // FIXED: This is the correct way to set media playback in modern Android
-            mediaPlaybackRequiresUserAction = false
+            
+            // FIXED: Changed 'UserAction' to 'UserGesture'
+            // This is the correct property name for Android WebSettings
+            mediaPlaybackRequiresUserGesture = false
             
             allowFileAccess = false
             allowContentAccess = false
         }
     }
 
-    // FIXED: Added 'state' as a parameter to match the call in SecureWebView
+    // Pass the 'state' here so SecureWebView can update the loading bar
     fun createWebViewClient(state: WebViewState): WebViewClient = object : WebViewClient() {
         override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
             state.isLoading = true
@@ -37,6 +39,6 @@ class WebViewController(
     }
 
     fun setupDownloadListener(webView: WebView) {
-        // Placeholder for download logic
+        // Placeholder for future download handling
     }
 }
