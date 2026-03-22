@@ -1,4 +1,4 @@
-name: Antonio  Build
+name: Antonio Build
 
 on:
   push:
@@ -20,24 +20,24 @@ jobs:
 
       - name: Decode Master Keystore
         run: |
-          mkdir -p app
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -di > app/antonio-release.jks
+          # We decode it directly into the app folder where the build runs
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/antonio-release.jks
 
       - name: Grant execute permission
         run: chmod +x gradlew
 
       - name: Build Release APK
-        run: ./gradlew assembleRelease --no-daemon -PversionCode=${{ github.run_number }} -PversionName="1.0.${{ github.run_number }}"
+        run: ./gradlew assembleRelease --no-daemon
         env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-          KEYSTORE_PATH: "antonio-release.jks"
+          # Make sure these names match what you typed in the 'gh secret set' commands!
+          RELEASE_STORE_FILE: antonio-release.jks
+          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
+          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: Antonio-App-Build-${{ github.run_number }}
-          path: app/build/outputs/apk/release/app-release.apk
-
-          
+          # Verify this path matches your project structure
+          path: app/build/outputs/apk/release/*.apk 
