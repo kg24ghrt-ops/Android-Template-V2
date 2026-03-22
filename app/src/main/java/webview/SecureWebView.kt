@@ -10,10 +10,11 @@ import androidx.compose.ui.viewinterop.AndroidView
 @Composable
 fun SecureWebView(
     url: String,
-    state: WebViewState, // Added this to sync with your UI
+    state: WebViewState, // Ensure this parameter exists
     modifier: Modifier = Modifier
 ) {
-    val controller = WebViewController()
+    // Pass the state to the controller
+    val controller = WebViewController(state)
 
     AndroidView(
         modifier = modifier,
@@ -24,16 +25,12 @@ fun SecureWebView(
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
                 
-                // Attach our controller logic
                 controller.configureSettings(settings)
-                
-                // Sync the WebView instance back to the state
                 state.webView = this
                 
-                // Custom WebViewClient to track loading progress
+                // FIXED: Passing state to the client
                 webViewClient = controller.createWebViewClient(state)
                 
-                // Basic ChromeClient for video/progress support
                 webChromeClient = object : WebChromeClient() {
                     override fun onProgressChanged(view: WebView?, newProgress: Int) {
                         state.progress = newProgress / 100f
@@ -44,7 +41,6 @@ fun SecureWebView(
             }
         },
         update = { webView ->
-            // Keep the state reference fresh
             state.webView = webView
         }
     )
