@@ -2,9 +2,9 @@ name: Antonio Build
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
   workflow_dispatch:
 
 jobs:
@@ -26,23 +26,9 @@ jobs:
       # 2️⃣ Repair Gradle Wrapper if missing or invalid
       - name: Repair Gradle Wrapper
         run: |
-          GRADLE_WRAPPER_JAR="gradle/wrapper/gradle-wrapper.jar"
-          GRADLE_WRAPPER_PROPERTIES="gradle/wrapper/gradle-wrapper.properties"
-          GRADLE_DIST_URL="https://services.gradle.org/distributions/gradle-8.10.2-bin.zip"
-
-          if [ ! -f "$GRADLE_WRAPPER_JAR" ] || [ ! -f "$GRADLE_WRAPPER_PROPERTIES" ]; then
-            echo "Gradle wrapper missing or incomplete. Repairing..."
-            mkdir -p gradle/wrapper
-            # Download the gradle-wrapper.jar (binary)
-            curl -s -L -o gradle/wrapper/gradle-wrapper.jar "$GRADLE_DIST_URL"
-            # Create gradle-wrapper.properties with correct indentation
-            cat > gradle/wrapper/gradle-wrapper.properties <<EOL
-distributionBase=GRADLE_USER_HOME
-distributionPath=wrapper/dists
-zipStoreBase=GRADLE_USER_HOME
-zipStorePath=wrapper/dists
-distributionUrl=$GRADLE_DIST_URL
-EOL
+          if [ ! -f "gradlew" ]; then
+            echo "Gradle wrapper missing. Recreating..."
+            ./gradlew wrapper --gradle-version 8.10.2
           else
             echo "Gradle wrapper exists, skipping repair."
           fi
