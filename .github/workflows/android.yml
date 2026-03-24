@@ -33,8 +33,10 @@ jobs:
           if [ ! -f "$GRADLE_WRAPPER_JAR" ] || [ ! -f "$GRADLE_WRAPPER_PROPERTIES" ]; then
             echo "Gradle wrapper missing or incomplete. Repairing..."
             mkdir -p gradle/wrapper
-            curl -s -o gradle/wrapper/gradle-wrapper.jar "$GRADLE_DIST_URL"
-            cat > "$GRADLE_WRAPPER_PROPERTIES" <<EOL
+            # Download the gradle-wrapper.jar (binary)
+            curl -s -L -o gradle/wrapper/gradle-wrapper.jar "$GRADLE_DIST_URL"
+            # Create gradle-wrapper.properties with correct indentation
+            cat > gradle/wrapper/gradle-wrapper.properties <<EOL
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
 zipStoreBase=GRADLE_USER_HOME
@@ -65,15 +67,15 @@ EOL
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 7️⃣ Run unit tests (fast check for logic errors)
+      # 7️⃣ Run unit tests
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
 
-      # 8️⃣ Build Debug APK (catch early build errors)
+      # 8️⃣ Build Debug APK
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # 9️⃣ Emulator smoke test (quick app launch check)
+      # 9️⃣ Emulator smoke test
       - name: Run emulator smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -87,7 +89,7 @@ EOL
             sleep 10
             adb shell pidof com.moweapp.antonio || exit 1
 
-      # 🔟 Decode release keystore from secret
+      # 🔟 Decode release keystore
       - name: Decode Master Keystore
         run: |
           mkdir -p app
