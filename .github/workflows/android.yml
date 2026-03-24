@@ -27,16 +27,19 @@ jobs:
       - name: Repair Gradle Wrapper
         run: |
           GRADLE_WRAPPER_JAR="gradle/wrapper/gradle-wrapper.jar"
-          if [ ! -f "$GRADLE_WRAPPER_JAR" ]; then
-            echo "Gradle wrapper missing. Repairing..."
+          GRADLE_WRAPPER_PROPERTIES="gradle/wrapper/gradle-wrapper.properties"
+          GRADLE_DIST_URL="https://services.gradle.org/distributions/gradle-8.10.2-bin.zip"
+
+          if [ ! -f "$GRADLE_WRAPPER_JAR" ] || [ ! -f "$GRADLE_WRAPPER_PROPERTIES" ]; then
+            echo "Gradle wrapper missing or incomplete. Repairing..."
             mkdir -p gradle/wrapper
-            curl -s -o gradle/wrapper/gradle-wrapper.jar https://services.gradle.org/distributions/gradle-8.10.2-bin.zip
-            cat > gradle/wrapper/gradle-wrapper.properties <<EOL
+            curl -s -o gradle/wrapper/gradle-wrapper.jar "$GRADLE_DIST_URL"
+            cat > "$GRADLE_WRAPPER_PROPERTIES" <<EOL
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
 zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
-distributionUrl=https\://services.gradle.org/distributions/gradle-8.10.2-bin.zip
+distributionUrl=$GRADLE_DIST_URL
 EOL
           else
             echo "Gradle wrapper exists, skipping repair."
@@ -70,7 +73,7 @@ EOL
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # 9️⃣ Emulator smoke test (checks app launch / prevents crash-on-start)
+      # 9️⃣ Emulator smoke test (quick app launch check)
       - name: Run emulator smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
