@@ -35,14 +35,14 @@ jobs:
       - name: Setup Gradle CLI
         uses: gradle/actions/setup-gradle@v4
 
-      # 4️⃣ Repair Gradle Wrapper if missing or broken
+      # 4️⃣ Repair Gradle Wrapper
       - name: Repair Gradle Wrapper
         run: |
           if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
             echo "Gradle wrapper missing or broken. Regenerating..."
             gradle wrapper --gradle-version 8.10.2 --distribution-type bin
           else
-            echo "Gradle wrapper exists and looks valid. Skipping repair."
+            echo "Gradle wrapper OK"
           fi
 
       # 5️⃣ Setup Android SDK
@@ -53,7 +53,7 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 7️⃣ Run unit tests
+      # 7️⃣ Unit tests
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
 
@@ -61,7 +61,7 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # 9️⃣ Emulator smoke test (FIXED)
+      # 9️⃣ Emulator smoke test WITH REAL LOGS
       - name: Run emulator smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -72,8 +72,23 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
             adb install -r app/build/outputs/apk/debug/app-debug.apk
+
+            # Clear old logs
+            adb logcat -c
+
+            # Launch app
             adb shell monkey -p com.moweapp.antonio -c android.intent.category.LAUNCHER 1
+
+            # Wait for crash
             sleep 10
+
+            echo "========== FULL LOGCAT =========="
+            adb logcat -d
+
+            echo "========== CRASH ONLY =========="
+            adb logcat -d | grep -E "FATAL|AndroidRuntime|Exception|com.moweapp.antonio"
+
+            # Fail if app died
             adb shell pidof com.moweapp.antonio || exit 1
 
       # 🔟 Decode release keystore
@@ -91,11 +106,11 @@ jobs:
           RELEASE_KEY_ALIAS: "antonio-key"
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
 
-      # 1️⃣2️⃣ Upload APK + mapping files
+      # 1️⃣2️⃣ Upload artifacts
       - name: Upload Release APK
         uses: actions/upload-artifact@v4
         with:
           name: Antonio-App-Build-${{ github.run_number }}
           path: |
             app/build/outputs/apk/release/*.apk
-            app/build/outputs/mapping/release/
+            app/build/outputs/mapping/release
