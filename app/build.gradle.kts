@@ -11,8 +11,8 @@ android {
         applicationId = "com.moweapp.antonio"   // FIXED: was "com.moweapp.antonio.ui" â€” applicationId must be the root package, never a sub-package
         minSdk = 24
         targetSdk = 34
-        versionCode = 4
-        versionName = "1.4"
+        versionCode = 5
+        versionName = "1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -84,6 +84,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
 
+    implementation("com.google.accompanist:accompanist-webview:0.33.2-alpha")
     // WebView Support
     implementation("androidx.webkit:webkit:1.9.0")
 
