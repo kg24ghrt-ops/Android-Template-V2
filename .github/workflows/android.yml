@@ -61,7 +61,7 @@ jobs:
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # 9️⃣ Emulator smoke test
+      # 9️⃣ Emulator smoke test (FIXED)
       - name: Run emulator smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -71,7 +71,8 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
           script: |
-            adb shell am start -n com.moweapp.antonio/.ui.MainActivity
+            adb install -r app/build/outputs/apk/debug/app-debug.apk
+            adb shell monkey -p com.moweapp.antonio -c android.intent.category.LAUNCHER 1
             sleep 10
             adb shell pidof com.moweapp.antonio || exit 1
 
