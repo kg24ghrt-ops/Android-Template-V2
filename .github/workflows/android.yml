@@ -23,18 +23,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      # 2️⃣ Repair Gradle Wrapper if missing or invalid
-      - name: Repair Gradle Wrapper
-        run: |
-          # Check all essential wrapper files
-          if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
-            echo "Gradle wrapper missing or broken. Regenerating..."
-            gradle wrapper --gradle-version 8.10.2 --distribution-type bin
-            chmod +x gradlew
-          else
-            echo "Gradle wrapper exists and looks valid. Skipping repair."
-
-      # 3️⃣ Setup JDK 21
+      # 2️⃣ Setup JDK 21
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -42,9 +31,18 @@ jobs:
           java-version: '21'
           cache: gradle
 
-      # 4️⃣ Setup Gradle
-      - name: Setup Gradle
+      # 3️⃣ Setup Gradle CLI
+      - name: Setup Gradle CLI
         uses: gradle/actions/setup-gradle@v4
+
+      # 4️⃣ Repair Gradle Wrapper if missing or broken
+      - name: Repair Gradle Wrapper
+        run: |
+          if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
+            echo "Gradle wrapper missing or broken. Regenerating..."
+            gradle wrapper --gradle-version 8.10.2 --distribution-type bin
+          else
+            echo "Gradle wrapper exists and looks valid. Skipping repair."
 
       # 5️⃣ Setup Android SDK
       - name: Setup Android SDK
@@ -54,15 +52,15 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 7️⃣ Run unit tests (fast check for logic errors)
+      # 7️⃣ Run unit tests
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
 
-      # 8️⃣ Build Debug APK (catch early build errors)
+      # 8️⃣ Build Debug APK
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace
 
-      # 9️⃣ Emulator smoke test (checks app launch / prevents crash-on-start)
+      # 9️⃣ Emulator smoke test
       - name: Run emulator smoke test
         uses: reactivecircus/android-emulator-runner@v2
         with:
