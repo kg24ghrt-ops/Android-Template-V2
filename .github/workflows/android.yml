@@ -43,6 +43,7 @@ jobs:
             gradle wrapper --gradle-version 8.10.2 --distribution-type bin
           else
             echo "Gradle wrapper exists and looks valid. Skipping repair."
+          fi
 
       # 5️⃣ Setup Android SDK
       - name: Setup Android SDK
