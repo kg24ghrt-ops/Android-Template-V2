@@ -2,7 +2,6 @@ package com.moweapp.antonio.engine
 
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
-import org.mozilla.geckoview.GeckoSession.NavigationDelegate.LoadRequest
 import org.mozilla.geckoview.AllowOrDeny
 import org.mozilla.geckoview.GeckoResult
 import com.moweapp.antonio.vpn.DomainFilterEngine
@@ -12,13 +11,11 @@ class RequestInterceptor(
     private val onUrlChanged: (String) -> Unit
 ) : NavigationDelegate {
 
-    // 1. Fix: Use the exact 'AllowOrDeny' type and correct override signature
-    override fun onLoadRequest(session: GeckoSession, request: LoadRequest): GeckoResult<AllowOrDeny>? {
+    override fun onLoadRequest(session: GeckoSession, request: NavigationDelegate.LoadRequest): GeckoResult<AllowOrDeny>? {
         val url = request.uri
         
-        // 2. Fix: Check if your filter engine uses 'isBlocked' or 'isDomainBlocked'
-        // If your DomainFilterEngine uses a different name, adjust it here.
-        val shouldBlock = filterEngine.isDomainBlocked(url)
+        // 🔥 SYNCED: Changed 'isDomainBlocked' to 'isBlocked' to match your Engine
+        val shouldBlock = filterEngine.isBlocked(url)
 
         return if (shouldBlock) {
             GeckoResult.fromValue(AllowOrDeny.DENY)
@@ -27,8 +24,12 @@ class RequestInterceptor(
         }
     }
 
-    // 3. Fix: Modern GeckoView signature for onLocationChange
-    override fun onLocationChange(session: GeckoSession, url: String?) {
+    // 🔥 SYNCED: Gecko 149 requires the 'permits' parameter
+    override fun onLocationChange(
+        session: GeckoSession, 
+        url: String?, 
+        permits: List<GeckoSession.PermissionDelegate.ContentPermission>
+    ) {
         url?.let { onUrlChanged(it) }
     }
 }
