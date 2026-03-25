@@ -7,75 +7,53 @@ class BrowserEngine {
 
     companion object {
         @Volatile
-        private var sRuntime: GeckoRuntime? = null
+        private var runtime: GeckoRuntime? = null
 
         fun getRuntime(context: Context): GeckoRuntime {
-            return sRuntime ?: synchronized(this) {
-                sRuntime ?: GeckoRuntime.create(context.applicationContext).also {
-                    sRuntime = it
+            return runtime ?: synchronized(this) {
+                runtime ?: GeckoRuntime.create(context.applicationContext).also {
+                    runtime = it
                 }
             }
         }
     }
 
-    var session: GeckoSession? = null
-        private set
+    private var session: GeckoSession? = null
+    private var canGoBackState = false
 
     fun init(
         context: Context,
         geckoView: GeckoView,
         interceptor: RequestInterceptor,
-        progress: GeckoSession.ProgressDelegate
+        performance: PerformanceManager
     ) {
-        // 🔥 Prevent duplicate session
-        session?.close()
-
         val settings = GeckoSessionSettings.Builder()
             .usePrivateMode(false)
-            // ✅ Use realistic UA (better compatibility)
-            .userAgentOverride(
-                "Mozilla/5.0 (Android 10; Mobile; rv:147.0) Gecko/147.0 Firefox/147.0"
-            )
+            .userAgentOverride("Mozilla/5.0 (Android 16; Mobile; rv:149.0) Gecko/149.0 Firefox/149.0")
             .suspendMediaWhenInactive(true)
             .build()
 
-        val newSession = GeckoSession(settings).apply {
+        session = GeckoSession(settings).apply {
             navigationDelegate = interceptor
-            progressDelegate = progress
+            progressDelegate = performance
             open(getRuntime(context))
         }
 
-        session = newSession
+        geckoView.setSession(session!!)
+    }
 
-        // ✅ Safe binding
-        geckoView.setSession(newSession)
+    fun updateCanGoBack(value: Boolean) {
+        canGoBackState = value
+    }
+
+    fun canGoBack(): Boolean = canGoBackState
+
+    fun goBack() {
+        session?.goBack()
     }
 
     fun loadUrl(url: String) {
-        val sanitizedUrl = SecurityManager.sanitizeUrl(url)
-
-        if (SecurityManager.isSafeUrl(sanitizedUrl)) {
-            session?.loadUri(sanitizedUrl)
-        }
-    }
-
-    // 🔥 Correct GeckoView navigation logic
-    fun canGoBack(): Boolean {
-        return session?.canGoBack ?: false
-    }
-
-    fun goBack() {
-        if (canGoBack()) {
-            session?.goBack()
-        }
-    }
-
-    fun reload() {
-        session?.reload()
-    }
-
-    fun destroy() {
-        session?.close()
-        session = null
+        val fixed = if (!url.startsWith("http")) "https://$url" else url
+        session?.loadUri(fixed)
     }
 }
