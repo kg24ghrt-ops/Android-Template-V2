@@ -41,7 +41,7 @@ android {
 
 dependencies {
     // 🔥 GECKOVIEW ENGINE
-    implementation("org.mozilla.geckoview:geckoview-131.0.20241028144603:+")
+    implementation("org.mozilla.geckoview:geckoview-131.0.3")
 
     // UI Support (Material 3 & AndroidX)
     implementation("com.google.android.material:material:1.12.0")
