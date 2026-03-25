@@ -5,14 +5,15 @@ plugins {
 
 android {
     namespace = "com.moweapp.antonio"
-    compileSdk = 35
+    // 🔥 UPDATED TO API 36 (Android 16)
+    compileSdk = 36 
 
     defaultConfig {
         applicationId = "com.moweapp.antonio"
-        minSdk = 24
-        targetSdk = 35
-        versionCode = 6
-        versionName = "1.6-gecko"
+        minSdk = 26 // Modern baseline for GeckoView 149+
+        targetSdk = 36
+        versionCode = 7
+        versionName = "1.7-gecko-modern"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -23,7 +24,6 @@ android {
 
     buildFeatures {
         viewBinding = true
-        compose = false
     }
 
     compileOptions {
@@ -34,32 +34,25 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-
-    // Optional memory increase for large pages
-    dexOptions {
-        javaMaxHeapSize = "4g"
-    }
 }
 
 dependencies {
-    // GeckoView engine
-    implementation("org.mozilla.geckoview:geckoview:147.0.20260212191108")
+    // 🔥 LATEST GECKOVIEW (Stable 149.0 - Released March 24, 2026)
+    implementation("org.mozilla.geckoview:geckoview-omni:149.0.20260324091245")
 
-    // UI libraries
-    implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.7.0")
-    implementation("androidx.constraintlayout:constraintlayout:2.2.0")
-    implementation("androidx.core:core-ktx:1.15.0")
+    // 🔥 MODERN ANDROIDX STACK
+    implementation("com.google.android.material:material:1.13.0")
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("androidx.core:core-ktx:1.18.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.1")
 
-    // Kotlin Coroutines
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
-
-    // Lifecycle
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+    // 🔥 LATEST LIFECYCLE & COROUTINES
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.10.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
-    androidTestImplementation("androidx.test.ext:junit:1.1.6")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.0")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
 }
