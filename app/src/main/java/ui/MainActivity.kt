@@ -18,21 +18,14 @@ import com.moweapp.antonio.engine.RequestInterceptor
 import com.moweapp.antonio.vpn.DomainFilterEngine
 import com.moweapp.antonio.vpn.MyVpnService
 
-/**
- * MainActivity - Antonio 1.7 (March 2026)
- * Handles VPN controls and the embedded GeckoView browser.
- */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private val browserEngine = BrowserEngine()
     private val filterEngine = DomainFilterEngine()
-
     private var vpnRunning = false
     private var blockedCount = 0
 
-    // ── VPN Permission Logic ──────────────────────────────────────────────────
-    
     private val vpnPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) launchVpnService()
@@ -40,12 +33,11 @@ class MainActivity : AppCompatActivity() {
 
     private val statsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            blockedCount = intent?.getIntExtra(MyVpnService.EXTRA_BLOCKED_COUNT, 0) ?: return
+            blockedCount =
+                intent?.getIntExtra(MyVpnService.EXTRA_BLOCKED_COUNT, 0) ?: return
             updateBlockedCount()
         }
     }
-
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -67,40 +59,57 @@ class MainActivity : AppCompatActivity() {
         unregisterReceiver(statsReceiver)
     }
 
-    // ── Engine Setup ──────────────────────────────────────────────────────────
-
+    /**
+     * Initialize the GeckoView browser with an interceptor + performance manager.
+     */
     private fun setupBrowserEngine() {
-        // Interceptor updates the URL bar automatically as you browse
-        val interceptor = RequestInterceptor(filterEngine) { newUrl ->
-            runOnUiThread { binding.urlEditText.setText(newUrl) }
-        }
+        val interceptor = RequestInterceptor(
+            filterEngine,
+            onUrlChanged = { newUrl ->
+                runOnUiThread {
+                    binding.urlEditText.setText(newUrl.toString())
+                }
+            },
+            onCanGoBackChanged = { canGoBack ->
+                browserEngine.updateCanGoBack(canGoBack)
+            }
+        )
 
         val performanceManager = PerformanceManager(
             onProgressUpdate = { progress ->
                 binding.browserProgress.progress = progress
             },
             onLoadingStateChanged = { isLoading ->
-                binding.browserProgress.visibility = if (isLoading) View.VISIBLE else View.GONE
+                binding.browserProgress.visibility =
+                    if (isLoading) View.VISIBLE else View.GONE
+            },
+            onUrlChanged = { newUrl ->
+                runOnUiThread {
+                    binding.urlEditText.setText(newUrl.toString())
+                }
+            },
+            onVoice = { message ->
+                // Example voice feedback (TextToSpeech or other)
+                // textToSpeech.speak(message, TextToSpeech.QUEUE_FLUSH, null, null)
             }
         )
 
         browserEngine.init(this, binding.geckoview, interceptor, performanceManager)
     }
 
-    // ── UI Events ─────────────────────────────────────────────────────────────
-
+    /**
+     * Handle UI buttons for VPN and browser.
+     */
     private fun setupClickListeners() {
         binding.btnStart.setOnClickListener { onStartClicked() }
         binding.btnStop.setOnClickListener { onStopClicked() }
 
-        // Switch to Browser Mode
         binding.btnOpenBrowser.setOnClickListener {
             binding.dashboardContainer.visibility = View.GONE
             binding.browserContainer.visibility = View.VISIBLE
             browserEngine.loadUrl("https://vidbox.cc")
         }
 
-        // URL Bar Keyboard Listener
         binding.urlEditText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_GO) {
                 browserEngine.loadUrl(binding.urlEditText.text.toString())
@@ -109,8 +118,6 @@ class MainActivity : AppCompatActivity() {
             } else false
         }
     }
-
-    // ── VPN Management ────────────────────────────────────────────────────────
 
     private fun onStartClicked() {
         val permissionIntent = VpnService.prepare(this)
@@ -122,8 +129,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun onStopClicked() {
-        startService(Intent(this, MyVpnService::class.java).apply { 
-            action = MyVpnService.ACTION_STOP 
+        startService(Intent(this, MyVpnService::class.java).apply {
+            action = MyVpnService.ACTION_STOP
         })
         vpnRunning = false
         blockedCount = 0
@@ -131,8 +138,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchVpnService() {
-        val intent = Intent(this, MyVpnService::class.java).apply { 
-            action = MyVpnService.ACTION_START 
+        val intent = Intent(this, MyVpnService::class.java).apply {
+            action = MyVpnService.ACTION_START
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(intent)
@@ -143,37 +150,31 @@ class MainActivity : AppCompatActivity() {
         updateUi()
     }
 
-    // ── Navigation (Back Stack Handling) ──────────────────────────────────────
-
     override fun onBackPressed() {
-        // 1. If in browser, try going back in history
         if (binding.browserContainer.visibility == View.VISIBLE) {
             if (browserEngine.canGoBack()) {
                 browserEngine.goBack()
             } else {
-                // 2. If at start of browser history, return to Dashboard
                 binding.browserContainer.visibility = View.GONE
                 binding.dashboardContainer.visibility = View.VISIBLE
             }
         } else {
-            // 3. Otherwise, standard app exit
             super.onBackPressed()
         }
     }
 
-    // ── UI Updates ────────────────────────────────────────────────────────────
-
     private fun updateUi() {
         binding.tvStatus.text = if (vpnRunning) "● VPN ON" else "○ VPN OFF"
         binding.tvStatus.setTextColor(
-            getColor(if (vpnRunning) android.R.color.holo_green_dark else android.R.color.holo_red_dark)
+            getColor(
+                if (vpnRunning) android.R.color.holo_green_dark
+                else android.R.color.holo_red_dark
+            )
         )
-        
+
         updateBlockedCount()
-        
-        // Toggle button visibility based on VPN state
         binding.btnStart.visibility = if (vpnRunning) View.GONE else View.VISIBLE
-        binding.btnStop.visibility  = if (vpnRunning) View.VISIBLE else View.GONE
+        binding.btnStop.visibility = if (vpnRunning) View.VISIBLE else View.GONE
     }
 
     private fun updateBlockedCount() {

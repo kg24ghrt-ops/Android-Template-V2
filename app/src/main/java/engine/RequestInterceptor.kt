@@ -2,6 +2,7 @@ package com.moweapp.antonio.engine
 
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.AllowOrDeny
 import com.moweapp.antonio.vpn.DomainFilterEngine
 
 class RequestInterceptor(
@@ -13,17 +14,16 @@ class RequestInterceptor(
     override fun onLoadRequest(
         session: GeckoSession,
         request: GeckoSession.NavigationDelegate.LoadRequest
-    ): GeckoResult<GeckoSession.NavigationDelegate.AllowOrDeny> {
+    ): GeckoResult<AllowOrDeny> {
+
+        val shouldBlock = filterEngine.isBlocked(request.uri)
 
         return GeckoResult.fromValue(
-            if (filterEngine.isBlocked(request.uri))
-                GeckoSession.NavigationDelegate.AllowOrDeny.DENY
-            else
-                GeckoSession.NavigationDelegate.AllowOrDeny.ALLOW
+            if (shouldBlock) AllowOrDeny.DENY
+            else AllowOrDeny.ALLOW
         )
     }
 
-    // ⚠️ STILL SUPPORTED BUT NOT FUTURE SAFE
     override fun onLocationChange(
         session: GeckoSession,
         url: String?,
@@ -33,7 +33,6 @@ class RequestInterceptor(
         url?.let { onUrlChanged(it) }
     }
 
-    // ✅ REQUIRED for back navigation
     override fun onCanGoBack(session: GeckoSession, canGoBack: Boolean) {
         onCanGoBackChanged(canGoBack)
     }
