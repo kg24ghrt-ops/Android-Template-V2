@@ -10,9 +10,12 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 50
     permissions:
       contents: read
+    env:
+      # Opt into Node.js 24 for deprecated actions
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     strategy:
       matrix:
@@ -35,25 +38,35 @@ jobs:
       - name: Setup Gradle CLI
         uses: gradle/actions/setup-gradle@v4
 
-      # 4️⃣ Repair Gradle Wrapper
+      # 4️⃣ Repair Gradle Wrapper (upgrade to 8.11.1 for AGP 9.1)
       - name: Repair Gradle Wrapper
         run: |
           if [ ! -f "gradlew" ] || [ ! -f "gradle/wrapper/gradle-wrapper.jar" ] || [ ! -f "gradle/wrapper/gradle-wrapper.properties" ]; then
             echo "Gradle wrapper missing or broken. Regenerating..."
-            gradle wrapper --gradle-version 8.10.2 --distribution-type bin
+            gradle wrapper --gradle-version 8.11.1 --distribution-type all
           else
-            echo "Gradle wrapper OK"
+            # Force upgrade if older version
+            CURRENT_VERSION=$(./gradlew --version | grep "Gradle " | awk '{print $2}')
+            echo "Current Gradle version: $CURRENT_VERSION"
+            if [ "$(printf '%s\n' "8.11.1" "$CURRENT_VERSION" | sort -V | head -n1)" != "8.11.1" ]; then
+              echo "Upgrading Gradle wrapper to 8.11.1"
+              gradle wrapper --gradle-version 8.11.1 --distribution-type all
+            fi
           fi
 
       # 5️⃣ Setup Android SDK
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
+        with:
+          api-level: ${{ matrix.api-level }}
+          build-tools: '36.0.0'
+          ndk: '25.2.9519653'
 
       # 6️⃣ Make gradlew executable
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
-      # 7️⃣ Unit tests
+      # 7️⃣ Run Unit tests
       - name: Run unit tests
         run: ./gradlew testDebugUnitTest --stacktrace
 
@@ -67,29 +80,14 @@ jobs:
           EMULATOR_FLAG=$(cat ci-emulator-run.txt 2>/dev/null || echo false)
           echo "Emulator run flag: $EMULATOR_FLAG"
           if [ "$EMULATOR_FLAG" = "true" ]; then
-            echo "Running emulator smoke test..."
-
-            # Start emulator using reactivecircus/runner
-            echo "Emulator setup handled by android-emulator-runner"
-
             adb install -r app/build/outputs/apk/debug/app-debug.apk
-
-            # Clear old logs
             adb logcat -c
-
-            # Launch app
             adb shell monkey -p com.moweapp.antonio -c android.intent.category.LAUNCHER 1
-
-            # Wait for app to settle
             sleep 10
-
             echo "========== FULL LOGCAT =========="
             adb logcat -d
-
             echo "========== CRASH ONLY =========="
             adb logcat -d | grep -E "FATAL|AndroidRuntime|Exception|com.moweapp.antonio"
-
-            # Fail if app died
             adb shell pidof com.moweapp.antonio || exit 1
           else
             echo "Skipping emulator smoke test."
