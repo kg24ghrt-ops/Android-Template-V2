@@ -12,8 +12,8 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.DeviceDefault"
         android:usesCleartextTraffic="true"
+        android:theme="@style/Theme.MoweApp"
         tools:targetApi="34">
 
         <!-- ── VPN Service ─────────────────────────────────────────────────── -->
@@ -27,10 +27,6 @@
                 <action android:name="android.net.VpnService"/>
             </intent-filter>
 
-            <!--
-                Required on Android 14+ when foregroundServiceType="specialUse".
-                Tells Google Play what this special-use service does.
-            -->
             <property
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="vpn"/>
@@ -38,14 +34,15 @@
 
         <!-- ── Launcher Activity ───────────────────────────────────────────── -->
         <!--
-            FIXED: was ".MainActivity" (root package) — now ".ui.MainActivity"
-            to match the actual class location:
-            com.moweapp.antonio.ui.MainActivity
+            FIXED: removed android:theme="@android:style/Theme.DeviceDefault"
+            Theme.DeviceDefault is a raw framework theme incompatible with
+            AppCompatActivity. Activity now inherits Theme.MoweApp from
+            <application>, which is a MaterialComponents theme that AppCompat
+            can work with.
         -->
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.DeviceDefault"
             android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>

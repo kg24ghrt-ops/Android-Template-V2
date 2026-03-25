@@ -1,12 +1,25 @@
-<resources>
-    <!-- Base application theme. -->
-    <style name="Base.Theme.DefaultAppTheme" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
-        <item name="colorPrimary">@color/theme</item>
-        <item name="colorAccent">@color/theme</item>
-        <item name="android:background">@color/background_day</item>
-    </style>
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    themes.xml
+    Place at: app/src/main/res/values/themes.xml
 
-    <style name="Theme.DefaultAppTheme" parent="Base.Theme.DefaultAppTheme" />
+    Theme.MoweApp extends Theme.MaterialComponents.DayNight.NoActionBar.
+    This satisfies AppCompatActivity's requirement for an AppCompat-based
+    theme, which was the root cause of the AppCompatDelegateImpl crash.
+-->
+<resources>
+    <style name="Theme.MoweApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/purple_500</item>
+        <item name="colorPrimaryVariant">@color/purple_700</item>
+        <item name="colorOnPrimary">@color/white</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="colorSecondaryVariant">@color/teal_700</item>
+        <item name="colorOnSecondary">@color/black</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/purple_700</item>
+    </style>
 </resources>
