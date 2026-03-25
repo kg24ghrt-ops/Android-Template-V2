@@ -14,7 +14,7 @@ class RequestInterceptor(
     override fun onLoadRequest(session: GeckoSession, request: NavigationDelegate.LoadRequest): GeckoResult<AllowOrDeny>? {
         val url = request.uri
         
-        // 🔥 SYNCED: Changed 'isDomainBlocked' to 'isBlocked' to match your Engine
+        // Matches your DomainFilterEngine.isBlocked(domain: String)
         val shouldBlock = filterEngine.isBlocked(url)
 
         return if (shouldBlock) {
@@ -24,11 +24,12 @@ class RequestInterceptor(
         }
     }
 
-    // 🔥 SYNCED: Gecko 149 requires the 'permits' parameter
+    // 🔥 UPDATED SIGNATURE FOR GECKO 149
+    // Note the explicit use of the ContentPermission type in the List
     override fun onLocationChange(
         session: GeckoSession, 
         url: String?, 
-        permits: List<GeckoSession.PermissionDelegate.ContentPermission>
+        permits: List<org.mozilla.geckoview.GeckoSession.PermissionDelegate.ContentPermission>
     ) {
         url?.let { onUrlChanged(it) }
     }
