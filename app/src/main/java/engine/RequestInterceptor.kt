@@ -1,43 +1,29 @@
 package com.moweapp.antonio.engine
 
-import android.net.Uri
-import com.moweapp.antonio.vpn.DomainFilterEngine
-import org.mozilla.geckoview.GeckoResult
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
+import org.mozilla.geckoview.GeckoResult
+import com.moweapp.antonio.vpn.DomainFilterEngine
 
-/**
- * The RequestInterceptor acts as the "Bouncer."
- * It intercepts every request and checks it against your DomainFilterEngine.
- */
 class RequestInterceptor(
     private val filterEngine: DomainFilterEngine,
-    private val onUrlChanged: (String) -> Unit // Callback to update the UI URL bar
+    private val onUrlChanged: (String) -> Unit
 ) : NavigationDelegate {
 
-    /**
-     * Triggered every time the browser wants to load a new resource or page.
-     */
-    override fun onLoadRequest(session: GeckoSession, request: NavigationDelegate.LoadRequest): GeckoResult<NavigationDelegate.AllowOrDeny>? {
-        val uri = Uri.parse(request.uri)
-        val host = uri.host
-
-        // 🛡️ THE AD-BLOCK CHECK
-        // We call your existing Kotlin DomainFilterEngine logic here
-        if (host != null && filterEngine.isBlocked(host)) {
-            // SILENTLY BLOCK: The request never leaves the device
-            return GeckoResult.fromValue(NavigationDelegate.AllowOrDeny.DENY)
+    // Modern GeckoView uses GeckoResult<Int> for allowing/denying
+    override fun onLoadRequest(session: GeckoSession, request: NavigationDelegate.LoadRequest): GeckoResult<Int>? {
+        val url = request.uri
+        
+        return if (filterEngine.isDomainBlocked(url)) {
+            // Constant for Deny (0 = Deny, 1 = Allow)
+            GeckoResult.fromValue(NavigationDelegate.LoadRequest.DENY)
+        } else {
+            GeckoResult.fromValue(NavigationDelegate.LoadRequest.ALLOW)
         }
-
-        // ALLOW: Safe domain
-        return GeckoResult.fromValue(NavigationDelegate.AllowOrDeny.ALLOW)
     }
 
-    /**
-     * Triggered when the main URL in the address bar changes (e.g., following a link).
-     */
-    override fun onLocationChange(session: GeckoSession, url: String?) {
-        super.onLocationChange(session, url)
+    // Updated to match the new 149 API signature
+    override fun onLocationChange(session: GeckoSession, url: String?, permits: List<GeckoSession.PermissionDelegate.ContentPermission>) {
         url?.let { onUrlChanged(it) }
     }
 }
