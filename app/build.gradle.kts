@@ -35,14 +35,14 @@ android {
         jvmTarget = "17"
     }
 
-    // Removed dexOptions (deprecated)
+    // dexOptions removed because it’s deprecated
 }
 
 dependencies {
-    // GeckoView
+    // GeckoView engine
     implementation("org.mozilla.geckoview:geckoview:147.0.20260212191108")
 
-    // UI Libraries
+    // Android UI
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
@@ -51,7 +51,7 @@ dependencies {
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
-    // Lifecycle
+    // Android Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
 
