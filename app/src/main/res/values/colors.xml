@@ -3,7 +3,7 @@
     colors.xml
     Place at: app/src/main/res/values/colors.xml
 -->
-<?xml version="1.0" encoding="utf-8"?>
+
 <!-- colors.xml -->
 <resources>
     <!-- Primary / Accent -->
