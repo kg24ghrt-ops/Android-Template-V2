@@ -15,18 +15,15 @@ android {
         versionName = "1.6-gecko"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        
+
         ndk {
             abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
         }
     }
 
     buildFeatures {
-        // 🔥 ENABLE THIS for XML layout support
         viewBinding = true
-        // You can keep compose = true if you have other compose screens, 
-        // but for the browser XML, viewBinding is the priority.
-        compose = false 
+        compose = false
     }
 
     compileOptions {
@@ -37,21 +34,32 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+
+    // Optional memory increase for large pages
+    dexOptions {
+        javaMaxHeapSize = "4g"
+    }
 }
 
 dependencies {
-    // 🔥 GECKOVIEW ENGINE
-    implementation("org.mozilla.geckoview:geckoview:131.0.3")
-    // UI Support (Material 3 & AndroidX)
+    // GeckoView engine
+    implementation("org.mozilla.geckoview:geckoview:147.0.20260212191108")
+
+    // UI libraries
     implementation("com.google.android.material:material:1.12.0")
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
     implementation("androidx.core:core-ktx:1.15.0")
-    
-    // Kotlin Coroutines (For your VPN & Ad-blocker)
+
+    // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+
+    // Testing
+    testImplementation("junit:junit:4.13.2")
+    androidTestImplementation("androidx.test.ext:junit:1.1.6")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.6.0")
 }
