@@ -33,9 +33,20 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        // Optional: only if you need to temporarily skip metadata errors
+        // freeCompilerArgs += "-Xskip-metadata-version-check"
     }
 
-    // dexOptions removed because it’s deprecated
+    // Removed deprecated dexOptions
+}
+
+// Force all Kotlin dependencies to 1.9.22 to avoid version conflicts
+configurations.all {
+    resolutionStrategy {
+        force("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22")
+    }
 }
 
 dependencies {
@@ -47,6 +58,11 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.0")
     implementation("androidx.core:core-ktx:1.17.0")
+
+    // Kotlin stdlib
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.22")
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.22")
 
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
