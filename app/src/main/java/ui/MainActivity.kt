@@ -8,150 +8,150 @@ import android.net.VpnService
 import android.os.Build
 import android.os.Bundle
 import android.view.View
-import android.widget.Button
-import android.widget.TextView
+import android.view.inputmethod.EditorInfo
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.moweapp.antonio.R
-import com.moweapp.antonio.browser.BrowserLauncher
+import com.moweapp.antonio.databinding.ActivityMainBinding
+import com.moweapp.antonio.engine.BrowserEngine
+import com.moweapp.antonio.engine.PerformanceManager
+import com.moweapp.antonio.engine.RequestInterceptor
+import com.moweapp.antonio.vpn.DomainFilterEngine
 import com.moweapp.antonio.vpn.MyVpnService
 
-/**
- * MainActivity
- *
- * Simple, single-screen UI for the MoweApp VPN ad blocker.
- *
- * Controls:
- *  - Start / Stop VPN toggle
- *  - Live blocked domain count (updated via [BroadcastReceiver])
- *  - "Open vidbox.cc" browser launcher button
- *
- * Layout file: res/layout/activity_main.xml
- * Required IDs: tv_status, tv_blocked_count, btn_start, btn_stop, btn_open_browser
- *
- * No ViewModel, no LiveData — state is held in simple member fields and
- * reconstructed from the VPN service state on resume.
- */
 class MainActivity : AppCompatActivity() {
 
-    // ── Views ─────────────────────────────────────────────────────────────────
-
-    private lateinit var tvStatus: TextView
-    private lateinit var tvBlockedCount: TextView
-    private lateinit var btnStart: Button
-    private lateinit var btnStop: Button
-    private lateinit var btnOpenBrowser: Button
-
-    // ── State ─────────────────────────────────────────────────────────────────
+    private lateinit var binding: ActivityMainBinding
+    private val browserEngine = BrowserEngine()
+    private val filterEngine = DomainFilterEngine()
 
     private var vpnRunning = false
     private var blockedCount = 0
 
     // ── VPN permission launcher ───────────────────────────────────────────────
-
     private val vpnPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                launchVpnService()
-            }
-            // If denied, do nothing — user chose not to allow
+            if (result.resultCode == RESULT_OK) launchVpnService()
         }
 
     // ── Stats broadcast receiver ──────────────────────────────────────────────
-
     private val statsReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
-            val count = intent?.getIntExtra(MyVpnService.EXTRA_BLOCKED_COUNT, 0) ?: return
-            blockedCount = count
+            blockedCount = intent?.getIntExtra(MyVpnService.EXTRA_BLOCKED_COUNT, 0) ?: return
             updateBlockedCount()
         }
     }
 
-    // ── Activity lifecycle ────────────────────────────────────────────────────
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
-        bindViews()
+        // 1. Core Browser Setup
+        setupBrowserEngine()
+        
+        // 2. Click Listeners
         setupClickListeners()
+        
+        // 3. Initial UI State
         updateUi()
     }
 
-    override fun onResume() {
-        super.onResume()
-        registerStatsReceiver()
+    private fun setupBrowserEngine() {
+        // Connect the ad-blocker to the browser
+        val interceptor = RequestInterceptor(filterEngine) { newUrl ->
+            runOnUiThread { binding.urlEditText.setText(newUrl) }
+        }
+
+        // Connect the progress bar
+        val performanceManager = PerformanceManager(
+            onProgressUpdate = { progress ->
+                binding.browserProgress.progress = progress
+            },
+            onLoadingStateChanged = { isLoading ->
+                binding.browserProgress.visibility = if (isLoading) View.VISIBLE else View.GONE
+            }
+        )
+
+        // Start GeckoView
+        browserEngine.init(this, binding.geckoview, interceptor, performanceManager)
     }
-
-    override fun onPause() {
-        super.onPause()
-        unregisterReceiver(statsReceiver)
-    }
-
-    // ── View binding ──────────────────────────────────────────────────────────
-
-    private fun bindViews() {
-        tvStatus       = findViewById(R.id.tv_status)
-        tvBlockedCount = findViewById(R.id.tv_blocked_count)
-        btnStart       = findViewById(R.id.btn_start)
-        btnStop        = findViewById(R.id.btn_stop)
-        btnOpenBrowser = findViewById(R.id.btn_open_browser)
-    }
-
-    // ── Click listeners ───────────────────────────────────────────────────────
 
     private fun setupClickListeners() {
-        btnStart.setOnClickListener { onStartClicked() }
-        btnStop.setOnClickListener  { onStopClicked()  }
-        btnOpenBrowser.setOnClickListener { onOpenBrowserClicked() }
+        binding.btnStart.setOnClickListener { onStartClicked() }
+        binding.btnStop.setOnClickListener { onStopClicked() }
+
+        // SWITCH: Dashboard -> Browser
+        binding.btnOpenBrowser.setOnClickListener {
+            binding.dashboardContainer.visibility = View.GONE
+            binding.browserContainer.visibility = View.VISIBLE
+            browserEngine.loadUrl("https://vidbox.cc")
+        }
+
+        // URL bar "Enter" key logic
+        binding.urlEditText.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == EditorInfo.IME_ACTION_GO) {
+                browserEngine.loadUrl(binding.urlEditText.text.toString())
+                binding.urlEditText.clearFocus()
+                true
+            } else false
+        }
     }
 
+    // ── VPN Controls ──────────────────────────────────────────────────────────
+
     private fun onStartClicked() {
-        // VpnService.prepare() returns an intent if the user needs to grant
-        // permission. If null is returned, permission is already granted.
         val permissionIntent = VpnService.prepare(this)
-        if (permissionIntent != null) {
-            vpnPermissionLauncher.launch(permissionIntent)
-        } else {
-            launchVpnService()
-        }
+        if (permissionIntent != null) vpnPermissionLauncher.launch(permissionIntent)
+        else launchVpnService()
     }
 
     private fun onStopClicked() {
-        val intent = Intent(this, MyVpnService::class.java).apply {
-            action = MyVpnService.ACTION_STOP
-        }
-        startService(intent)
-
+        startService(Intent(this, MyVpnService::class.java).apply { action = MyVpnService.ACTION_STOP })
         vpnRunning = false
         blockedCount = 0
         updateUi()
     }
 
-    private fun onOpenBrowserClicked() {
-        BrowserLauncher.open(this)
-    }
-
-    // ── VPN service launch ────────────────────────────────────────────────────
-
     private fun launchVpnService() {
-        val intent = Intent(this, MyVpnService::class.java).apply {
-            action = MyVpnService.ACTION_START
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
-        }
-
+        val intent = Intent(this, MyVpnService::class.java).apply { action = MyVpnService.ACTION_START }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(intent)
+        else startService(intent)
         vpnRunning = true
         updateUi()
     }
 
-    // ── Broadcast receiver registration ───────────────────────────────────────
+    // ── Navigation Logic ──────────────────────────────────────────────────────
 
-    private fun registerStatsReceiver() {
+    override fun onBackPressed() {
+        // If we are in the browser, handle history. If at start of history, go back to dashboard.
+        if (binding.browserContainer.visibility == View.VISIBLE) {
+            if (browserEngine.canGoBack()) {
+                browserEngine.goBack()
+            } else {
+                binding.browserContainer.visibility = View.GONE
+                binding.dashboardContainer.visibility = View.VISIBLE
+            }
+        } else {
+            super.onBackPressed()
+        }
+    }
+
+    // ── UI Helpers ────────────────────────────────────────────────────────────
+
+    private fun updateUi() {
+        binding.tvStatus.text = if (vpnRunning) "● VPN ON" else "○ VPN OFF"
+        binding.tvStatus.setTextColor(getColor(if (vpnRunning) android.R.color.holo_green_dark else android.R.color.holo_red_dark))
+        updateBlockedCount()
+        binding.btnStart.visibility = if (vpnRunning) View.GONE else View.VISIBLE
+        binding.btnStop.visibility = if (vpnRunning) View.VISIBLE else View.GONE
+    }
+
+    private fun updateBlockedCount() {
+        binding.tvBlockedCount.text = "Blocked: $blockedCount domains"
+    }
+
+    override fun onResume() {
+        super.onResume()
         val filter = IntentFilter(MyVpnService.BROADCAST_STATS)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             registerReceiver(statsReceiver, filter, RECEIVER_NOT_EXPORTED)
@@ -160,30 +160,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // ── UI updates ────────────────────────────────────────────────────────────
-
-    private fun updateUi() {
-        updateStatus()
-        updateBlockedCount()
-        updateButtons()
-    }
-
-    private fun updateStatus() {
-        tvStatus.text = if (vpnRunning) "● VPN ON" else "○ VPN OFF"
-        tvStatus.setTextColor(
-            if (vpnRunning)
-                getColor(android.R.color.holo_green_dark)
-            else
-                getColor(android.R.color.holo_red_dark)
-        )
-    }
-
-    private fun updateBlockedCount() {
-        tvBlockedCount.text = "Blocked: $blockedCount domains"
-    }
-
-    private fun updateButtons() {
-        btnStart.visibility = if (vpnRunning) View.GONE else View.VISIBLE
-        btnStop.visibility  = if (vpnRunning) View.VISIBLE else View.GONE
+    override fun onPause() {
+        super.onPause()
+        unregisterReceiver(statsReceiver)
     }
 }

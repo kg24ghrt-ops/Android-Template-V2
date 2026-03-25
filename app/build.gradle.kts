@@ -5,42 +5,28 @@ plugins {
 
 android {
     namespace = "com.moweapp.antonio"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.moweapp.antonio"   // FIXED: was "com.moweapp.antonio.ui" â€” applicationId must be the root package, never a sub-package
+        applicationId = "com.moweapp.antonio"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 5
-        versionName = "1.5"
+        targetSdk = 35
+        versionCode = 6
+        versionName = "1.6-gecko"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        vectorDrawables { useSupportLibrary = true }
-    }
-
-    signingConfigs {
-        create("release") {
-            val path = System.getenv("RELEASE_STORE_FILE") ?: "antonio-release.jks"
-            storeFile = file(path)
-            storePassword = System.getenv("RELEASE_STORE_PASSWORD")
-            keyAlias = System.getenv("RELEASE_KEY_ALIAS")
-            keyPassword = System.getenv("RELEASE_KEY_PASSWORD")
+        
+        ndk {
+            abiFilters.addAll(listOf("armeabi-v7a", "arm64-v8a", "x86_64"))
         }
     }
 
-    // FIXED: removed duplicate buildTypes block (you had two identical ones)
-    buildTypes {
-        release {
-            isMinifyEnabled = true
-            signingConfig = signingConfigs.getByName("release")
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
-        }
-        debug {
-            isMinifyEnabled = false
-        }
+    buildFeatures {
+        // 🔥 ENABLE THIS for XML layout support
+        viewBinding = true
+        // You can keep compose = true if you have other compose screens, 
+        // but for the browser XML, viewBinding is the priority.
+        compose = false 
     }
 
     compileOptions {
@@ -51,57 +37,22 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
-
-    buildFeatures {
-        compose = true
-    }
-
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.10"
-    }
-
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
 }
 
 dependencies {
-    // Core AndroidX
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
-    implementation("androidx.activity:activity-compose:1.8.2")
+    // 🔥 GECKOVIEW ENGINE
+    implementation("org.mozilla.geckoview:geckoview-131.0.20241028144603:+")
 
-    // UI Support
+    // UI Support (Material 3 & AndroidX)
     implementation("com.google.android.material:material:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+    implementation("androidx.constraintlayout:constraintlayout:2.2.0")
+    implementation("androidx.core:core-ktx:1.15.0")
+    
+    // Kotlin Coroutines (For your VPN & Ad-blocker)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
-    // Jetpack Compose
-    implementation(platform("androidx.compose:compose-bom:2023.10.01"))
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-
-    implementation("com.google.accompanist:accompanist-webview:0.33.2-alpha")
-    // WebView Support
-    implementation("androidx.webkit:webkit:1.9.0")
-
-    // ADDED: Chrome Custom Tabs â€” required by BrowserLauncher.kt
-    implementation("androidx.browser:browser:1.8.0")
-
-    // ADDED: Kotlin Coroutines â€” required by DomainFilterEngine + MyVpnService
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
-
-    // Tooling
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
-    testImplementation("junit:junit:4.13.2")
-
-    // Standard instrumented test support (good practice to have)
-    androidTestImplementation("androidx.test.ext:junit:1.1.5")
-    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    androidTestImplementation(platform("androidx.compose:compose-bom:2023.10.01"))
-    androidTestImplementation("androidx.compose.ui:ui-test-junit4")
-} 
+    // Lifecycle
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7")
+}

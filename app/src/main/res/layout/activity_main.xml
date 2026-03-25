@@ -1,102 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    activity_main.xml
-    Layout for MainActivity — MoweApp VPN ad blocker control screen.
-
-    Place this file at:
-        app/src/main/res/layout/activity_main.xml
--->
-<LinearLayout
+<androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:gravity="center"
-    android:padding="32dp"
     android:background="#0F0F1A">
 
-    <!-- App title -->
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="MoweApp"
-        android:textSize="36sp"
-        android:textStyle="bold"
-        android:textColor="#E2E8F0"
-        android:layout_marginBottom="4dp"/>
+    <LinearLayout
+        android:id="@+id/browser_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:visibility="gone">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Ad Blocker"
-        android:textSize="14sp"
-        android:textColor="#94A3B8"
-        android:layout_marginBottom="48dp"/>
+        <com.google.android.material.appbar.AppBarLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <com.google.android.material.search.SearchBar
+                android:id="@+id/search_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Search vidbox.cc..." />
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/browser_progress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:trackThickness="3dp" />
+        </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- VPN status indicator -->
-    <TextView
-        android:id="@+id/tv_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="○ VPN OFF"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="#F87171"
-        android:layout_marginBottom="16dp"/>
+        <org.mozilla.geckoview.GeckoView
+            android:id="@+id/geckoview"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+    </LinearLayout>
 
-    <!-- Blocked domain count -->
-    <TextView
-        android:id="@+id/tv_blocked_count"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Blocked: 0 domains"
-        android:textSize="16sp"
-        android:textColor="#CBD5E1"
-        android:layout_marginBottom="48dp"/>
+    <LinearLayout
+        android:id="@+id/dashboard_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="32dp">
 
-    <!-- Start VPN button -->
-    <Button
-        android:id="@+id/btn_start"
-        android:layout_width="240dp"
-        android:layout_height="56dp"
-        android:text="Start VPN"
-        android:textSize="16sp"
-        android:backgroundTint="#10B981"
-        android:layout_marginBottom="16dp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="MoweApp"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:textColor="#E2E8F0" />
 
-    <!-- Stop VPN button (hidden when VPN is off) -->
-    <Button
-        android:id="@+id/btn_stop"
-        android:layout_width="240dp"
-        android:layout_height="56dp"
-        android:text="Stop VPN"
-        android:textSize="16sp"
-        android:backgroundTint="#EF4444"
-        android:visibility="gone"
-        android:layout_marginBottom="32dp"/>
+        <TextView
+            android:id="@+id/tv_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="○ VPN OFF"
+            android:textColor="#F87171"
+            android:layout_marginTop="24dp"/>
 
-    <!-- Divider -->
-    <View
-        android:layout_width="200dp"
-        android:layout_height="1dp"
-        android:background="#334155"
-        android:layout_marginBottom="32dp"/>
+        <Button
+            android:id="@+id/btn_start"
+            android:layout_width="240dp"
+            android:layout_height="56dp"
+            android:text="Start VPN"
+            android:backgroundTint="#10B981"
+            android:layout_marginTop="32dp"/>
 
-    <!-- Browser launcher -->
-    <Button
-        android:id="@+id/btn_open_browser"
-        android:layout_width="240dp"
-        android:layout_height="56dp"
-        android:text="Open vidbox.cc"
-        android:textSize="14sp"
-        android:backgroundTint="#3B82F6"/>
+        <Button
+            android:id="@+id/btn_open_browser"
+            android:layout_width="240dp"
+            android:layout_height="56dp"
+            android:text="Launch Browser"
+            android:backgroundTint="#3B82F6"
+            android:layout_marginTop="16dp"/>
+    </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Traffic routed through VPN"
-        android:textSize="11sp"
-        android:textColor="#64748B"
-        android:layout_marginTop="8dp"/>
-
-</LinearLayout>
+</androidx.constraintlayout.widget.ConstraintLayout>
